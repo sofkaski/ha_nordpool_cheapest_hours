@@ -3,10 +3,10 @@
 template:
   -  sensor:
       # The actual cheapest hour sensor. If multiple entries are required, copy, raname, set unique_id and configure attributes.
-      - name: "Cheapest hours energy (non-sequential)"
+      - name: "Halvimman sähkön tunnit"
         unique_id: cheapest_hours_energy_non_sequential
         state: >
-          {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
+          {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_4_095_0') | string) -%}
           {{ state_attr(sensor, 'tomorrow_valid') }}
         attributes:
           # CHANGE-ME: Set your personal configurations in here
@@ -14,10 +14,10 @@ template:
           first_hour: 21 # Search starting hour
           last_hour: 07 # Search ending hour
           starting_today: true # Is the first_hour today (true / false). If false, first_hour needs to be before last_hour.
-          sensor: sensor.nordpool_kwh_fi_eur_3_10_024 # Nord pool sensor id. Check it ouf from your integrations page!
-          fail_safe_starting: '00:00' # If nordpool fetch fails, starting time to make the calendar entry
+          sensor: sensor.nordpool_kwh_fi_eur_4_095_0 # Nord pool sensor id. Check it ouf from your integrations page!
+          fail_safe_starting: '01:00' # If nordpool fetch fails, starting time to make the calendar entry
           list: >-
-            {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
+            {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_4_095_0') | string) -%}
             {%- set numberOfHours = (this.attributes.get('number_of_hours',1) | int) -%}
             {%- set lastHour = (this.attributes.get('last_hour',23) | int) -%}
             {%- set firstHour = (this.attributes.get('first_hour', 0) | int) -%}
@@ -90,39 +90,39 @@ automation:
     trigger:
     - platform: calendar
       event: start
-      entity_id: calendar.electricity
+      entity_id: calendar.nordpool_calendar
     - platform: calendar
       event: end
-      entity_id: calendar.electricity
+      entity_id: calendar.nordpool_calendar
     condition:
     - condition: template
       # CHANGE-ME: sensorId to used template
       value_template: >
-        {%- set sensorId = 'sensor.cheapest_hours_energy_non_sequential' -%}
+        {%- set sensorId = 'sensor.halvimman_sahkon_tunnit' -%}
         {{ (state_attr(sensorId, 'friendly_name') | string) == trigger.calendar_event.summary }}
     action:
     - if:
       - condition: template
         value_template: '{{ trigger.event == ''start'' }}'
       then:
-      # CHANGE-ME: Actions to do when cheap hour starts
+      # Actions to do when cheap hour starts
       - service: input_boolean.turn_on
-        entity_id: input_boolean.test_switch
+        entity_id: input_boolean.battery_grid_charging
       else:
-      # CHANGE-ME: Actions to do when cheap hour ends
+      # Actions to do when cheap hour ends
       - service: input_boolean.turn_off
-        entity_id: input_boolean.test_switch
+        entity_id: input_boolean.battery_grid_charging
     mode: single
 
 # Automation that triggers creating of the calendar entries
   - id: 'cheapest_hours_non_sequential_set_sequence'
-    alias: 'Cheap hours: Set next non-sequantial chepeast hours'
+    alias: 'Cheap hours: Set next non-sequential cheapest hours'
     description: 'Checks tomorrow energy prices every hour and create calendar entry when available AND events not yet created'
     variables:
       # from which sensor we should try the tomorrow price validation
       # CHANGE-ME: sensorId to used template
       sensorId: >-
-        {%- set sensorId = 'sensor.cheapest_hours_energy_non_sequential' -%}
+        {%- set sensorId = 'sensor.halvimman_sahkon_tunnit' -%}
         {{ sensorId }}
     trigger:
     - platform: time_pattern
@@ -153,7 +153,7 @@ automation:
       # from which sensor we should use for failsafe
       # CHANGE-ME: sensorId to used template
       sensorId: >-
-        {%- set sensorId = 'sensor.cheapest_hours_energy_non_sequential' -%}
+        {%- set sensorId = 'sensor.halvimman_sahkon_tunnit' -%}
         {{ sensorId }}
     trigger:
     - platform: time
@@ -213,4 +213,4 @@ script:
                 description: >-
                   Nordpool price: {{ state_attr(sensorId, attribute)[repeat.index-1].price }} €
               target:
-                entity_id: calendar.electricity
+                entity_id: calendar.nordpool_calendar
